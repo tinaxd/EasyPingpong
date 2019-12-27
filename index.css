@@ -25,5 +25,9 @@
 }
 
 .ok-btn {
-    background-color: #e8ebb5;
+  background-color: #e8ebb5;
+}
+
+#gameCanvas {
+  display: block;
 }
