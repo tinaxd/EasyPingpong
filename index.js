@@ -60,7 +60,8 @@ function physicsInit() {
         restitution: 1
 	});
 	Matter.World.addBody(world, ball);
-	ball.collisionFilter.group = 1;
+    ball.collisionFilter.group = 1;
+    Matter.Body.applyForce(ball, ball.position, Matter.Vector.create(0.0005, 0.0005));
 
 	// bounds
 	const bold = 0.05*canvas.width;
@@ -108,7 +109,7 @@ function physicsInit() {
     });
     player2.collisionFilter.group = 1;
     Matter.World.addBody(world, player2);
-    Matter.Body.applyForce(player2, player2.position, Matter.Vector.create(0.0001, 0));
+    //Matter.Body.applyForce(player2, player2.position, Matter.Vector.create(0.0001, 0));
 }
 
 let lastTime;
@@ -127,14 +128,27 @@ function restrictPlayerMove() {
 
 function aiMove() {
     const Vec = Matter.Vector;
-    const rv = Vec.sub(ball.velocity, player2.velocity);
-    const rp = Vec.sub(ball.position, player2.position);
-    const tc = Vec.magnitude(rp) / Vec.magnitude(rv);
-    if (!Number.isFinite(tc)) return;
+    const maxVel = 15;
+    if (ball.position.x < canvas.width / 2) {
+        const myX = 0.8 * canvas.width;
+        const tc = Math.abs((myX - ball.position.x) / ball.velocity.x);
+        const expectY = ball.position.y + ball.velocity.y * tc;
+        let aiPlan = Vec.create((myX - player2.position.x) / tc, (expectY - player2.position.y) / tc);
+        aiPlan = Vec.mult(Vec.div(aiPlan, Vec.magnitude(aiPlan)), Math.min(Vec.magnitude(aiPlan), maxVel));
+        Matter.Body.setVelocity(player2, aiPlan);
+    } else {
+        const ballTarget = Vec.add(ball.position, Vec.create(0.04*canvas.width, 0));
+        const rv = Vec.sub(ball.velocity, player2.velocity);
+        const rp = Vec.sub(ballTarget, player2.position);
+        const tc = Vec.magnitude(rp) / Vec.magnitude(rv);
+        if (!Number.isFinite(tc)) return;
 
-    const target = Vec.add(ball.position, Vec.mult(ball.velocity, tc));
-    const targetV = Vec.div(target, tc);
-    Matter.Body.setVelocity(player2, targetV);
+        const target = Vec.add(ballTarget, Vec.mult(ball.velocity, tc));
+        const targetVel = Vec.sub(target, player2.position);
+        let aiPlan = Vec.div(targetVel, tc);
+        aiPlan = Vec.mult(Vec.div(aiPlan, Vec.magnitude(aiPlan)), Math.min(Vec.magnitude(aiPlan), maxVel));
+        Matter.Body.setVelocity(player2, aiPlan);
+    }
 }
 
 function initialDraw() {
