@@ -29,7 +29,7 @@ function clearCanvas() {
 
 /* from https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas */
 function getMousePos(evt) {
-    let rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     return {
         x: evt.clientX - rect.left,
         y: evt.clientY - rect.top
@@ -43,6 +43,7 @@ let bounds;
 let mouseInstance;
 let player1;
 let player1mouse;
+let player2; // AI Player
 
 function physicsInit() {
 	world = Matter.World.create();
@@ -52,7 +53,7 @@ function physicsInit() {
 	console.log('physics init');
 
 	// ball
-	let radius = 0.02 * canvas.width;
+	const radius = 0.02 * canvas.width;
 	ball = Matter.Bodies.circle(0.5*canvas.width, 0.5*canvas.height, radius, {
 		mass: 1,
         friction: 0,
@@ -62,14 +63,14 @@ function physicsInit() {
 	ball.collisionFilter.group = 1;
 
 	// bounds
-	let bold = 0.05*canvas.width;
-	let rect1 = Matter.Bodies.rectangle(bold/2, 0.165*canvas.height, bold, 0.33*canvas.height)
-	let rect2 = Matter.Bodies.rectangle(bold/2, 0.825*canvas.height, bold, 0.33*canvas.height);
-	let rect3 = Matter.Bodies.rectangle(0.50*canvas.width, bold/2, canvas.width, bold);
-	let rect4 = Matter.Bodies.rectangle(canvas.width - bold/2, 0.165*canvas.height, bold, 0.33*canvas.height);
-	let rect5 = Matter.Bodies.rectangle(canvas.width - bold/2, 0.825*canvas.height, bold, 0.33*canvas.height);
-	let rect6 = Matter.Bodies.rectangle(0.50*canvas.width, canvas.height - bold/2, canvas.width, bold);
-	let bounds = [rect1, rect2, rect3, rect4, rect5, rect6];
+	const bold = 0.05*canvas.width;
+	const rect1 = Matter.Bodies.rectangle(bold/2, 0.165*canvas.height, bold, 0.33*canvas.height)
+	const rect2 = Matter.Bodies.rectangle(bold/2, 0.825*canvas.height, bold, 0.33*canvas.height);
+	const rect3 = Matter.Bodies.rectangle(0.50*canvas.width, bold/2, canvas.width, bold);
+	const rect4 = Matter.Bodies.rectangle(canvas.width - bold/2, 0.165*canvas.height, bold, 0.33*canvas.height);
+	const rect5 = Matter.Bodies.rectangle(canvas.width - bold/2, 0.825*canvas.height, bold, 0.33*canvas.height);
+	const rect6 = Matter.Bodies.rectangle(0.50*canvas.width, canvas.height - bold/2, canvas.width, bold);
+	const bounds = [rect1, rect2, rect3, rect4, rect5, rect6];
 	bounds.forEach(r=>{
         Matter.Body.setStatic(r, true);
 		r.collisionFilter.group = 1;
@@ -80,12 +81,12 @@ function physicsInit() {
 
     // player
     mouseInstance = Matter.Mouse.create(canvas);
-    let playerradius = 0.025 * canvas.width;
+    const playerradius = 0.025 * canvas.width;
     player1 = Matter.Bodies.circle(0.25*canvas.width, 0.5*canvas.height, playerradius, {
         mass: 1,
         friction: 1,
         frictionAir: 1,
-        restitution: 1,
+        restitution: 1
     });
     player1.collisionFilter.group = 1;
     player1mouse = Matter.MouseConstraint.create(engine, {
@@ -100,13 +101,21 @@ function physicsInit() {
     Matter.World.addBody(world, player1);
     Matter.World.add(world, player1mouse);
 
-	//Matter.Body.applyForce(ball, ball.position, Matter.Vector.create(0.0075, 0.0075));
+	// player 2
+    player2 = Matter.Bodies.circle(0.75*canvas.width, 0.5*canvas.height, playerradius, {
+        mass: 1,
+        restitution: 1
+    });
+    player2.collisionFilter.group = 1;
+    Matter.World.addBody(world, player2);
+    Matter.Body.applyForce(player2, player2.position, Matter.Vector.create(0.0001, 0));
 }
 
 let lastTime;
 function updatePhysics() {
-	let deltaMillis = Date.now() - lastTime;
+	const deltaMillis = Date.now() - lastTime;
     restrictPlayerMove();
+    aiMove();
 	Matter.Engine.update(engine, deltaMillis);
 }
 
@@ -116,11 +125,23 @@ function restrictPlayerMove() {
     }
 }
 
+function aiMove() {
+    const Vec = Matter.Vector;
+    const rv = Vec.sub(ball.velocity, player2.velocity);
+    const rp = Vec.sub(ball.position, player2.position);
+    const tc = Vec.magnitude(rp) / Vec.magnitude(rv);
+    if (!Number.isFinite(tc)) return;
+
+    const target = Vec.add(ball.position, Vec.mult(ball.velocity, tc));
+    const targetV = Vec.div(target, tc);
+    Matter.Body.setVelocity(player2, targetV);
+}
+
 function initialDraw() {
     // Draw background
     context.strokeStyle = 'rgb(0, 0, 0)';
     context.fillStyle = 'rgb(0, 0, 0)';
-    let bold = 0.05*canvas.width;
+    const bold = 0.05*canvas.width;
     context.fillRect(0, 0, bold, 0.33*canvas.height);
     context.fillRect(0, 0.66*canvas.height, bold, 0.33*canvas.height);
     context.fillRect(0, 0, canvas.width, bold);
@@ -141,11 +162,20 @@ function drawBall() {
 }
 
 function drawPlayer() {
-    let radius = 0.025 * canvas.width;
+    const radius = 0.025 * canvas.width;
+    // player 1
     context.beginPath();
     context.strokeStyle = 'rgb(50, 50, 255)';
     context.fillStyle = 'rgba(50, 50, 255, 0.5)';
     context.arc(player1.position.x, player1.position.y, radius, 0, 2*Math.PI);
+    context.fill();
+    context.closePath();
+
+    //player 2
+    context.beginPath();
+    context.strokeStyle = 'rgb(50, 255, 50)';
+    context.fillStyle = 'rgba(50, 255, 50, 0.5)';
+    context.arc(player2.position.x, player2.position.y, radius, 0, 2*Math.PI);
     context.fill();
     context.closePath();
 }
