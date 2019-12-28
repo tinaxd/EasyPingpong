@@ -128,7 +128,7 @@ function restrictPlayerMove() {
 
 function aiMove() {
     const Vec = Matter.Vector;
-    const maxVel = 15;
+    const maxVel = 25;
     if (ball.position.x < canvas.width / 2) {
         const myX = 0.8 * canvas.width;
         const tc = Math.abs((myX - ball.position.x) / ball.velocity.x);
