@@ -61,7 +61,7 @@ function physicsInit() {
 	});
 	Matter.World.addBody(world, ball);
     ball.collisionFilter.group = 1;
-    Matter.Body.applyForce(ball, ball.position, Matter.Vector.create(0.0005, 0.0005));
+    //Matter.Body.applyForce(ball, ball.position, Matter.Vector.create(0.0005, 0.0005));
 
 	// bounds
 	const bold = 0.05*canvas.width;
